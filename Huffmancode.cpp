@@ -12,13 +12,13 @@ typedef PtrToEdNode Edge;
 typedef struct AdjVNode* PtrToAdjVNode;
 struct AdjVNode {
 	Vertex Adjv;//邻接点下标
-	int flag;//查询是否已经被输出
+	int flag;
 	PtrToAdjVNode Next;//指向下一个邻接点的下标
 };
 //顶点表头结点的定义
 typedef struct VNode{
 	PtrToAdjVNode FirstEdge;
-}AdjList[MaxVertexNum];
+}AdjList[10];
 //图结点的定义
 typedef struct GNode* PtrToGNode;
 struct GNode {
@@ -41,9 +41,9 @@ struct QueueNode {
 LGraph BuildGraph(LGraph Graph,Vertex Vertexnum);//建立一个V个顶点的空图
 void Insert(LGraph Graph, Edge E);//将邻接表插入到头结点上
 void DFS(LGraph Graph,Vertex V);//DFE输出函数
-void BFS(LGraph Graph,Vertex V);//BFS输出函数
+void BFS(Queue Q,LGraph Graph,Vertex V);//BFS输出函数
 void Free(LGraph G);//将申请的内存释放
-Queue CreateQueue(Vertex Num);//建立一个最大容量为Num的队列
+Queue CreateQueue(Queue Q,Vertex Num);//建立一个最大容量为Num的队列
 void Push(Queue Q, PtrToAdjVNode p);
 PtrToAdjVNode Pop(Queue Q);
 int IsEmpty(Queue Q);
@@ -53,6 +53,12 @@ int main()
 	LGraph Graph;
 	int  W;
 	Edge E;
+	Queue Q;
+	Q = (Queue)malloc(sizeof(struct QueueNode));
+	if (!Q) {
+		printf("ERROR");
+		return NULL;
+	}
 
 	scanf_s("%d", &V);//顶点数
 	Graph = (LGraph)malloc(sizeof(struct GNode));
@@ -79,10 +85,17 @@ int main()
 		free(E);
 	}
 	for (V = 0; V < Graph->Nv; V++) {
+		printf("{ ");
+		printf("%d ", V);
 		DFS(Graph,V);
+		printf("}\n");
 	}
+	Q = CreateQueue(Q, Graph->Ne);
 	for (V = 0; V < Graph->Nv; V++) {
-		BFS(Graph, V);
+		printf("{ ");
+		printf("%d ", V);
+		BFS(Q,Graph, V);
+		printf("}\n");
 	}
 	Free(Graph);
 	free(Graph);
@@ -111,44 +124,31 @@ void Insert(LGraph Graph, Edge E)
 		return ;
 	}
 	NewNode->Adjv = E->V2;
-	NewNode->flag = 1;
+	NewNode->flag = 0;
 	NewNode->Next = Graph->G[E->V1].FirstEdge;
 	Graph->G[E->V1].FirstEdge = NewNode;
-
-	NewNode = (PtrToAdjVNode)malloc(sizeof(struct AdjVNode));
-	if (!NewNode) {
-		printf("ERROR");
-		return;
-	}
-	NewNode->Adjv = E->V1;
-	NewNode->Next = Graph->G[E->V2].FirstEdge;
-	Graph->G[E->V2].FirstEdge = NewNode;
 }
 
 void DFS(LGraph Graph, Vertex V)
 {
 	PtrToAdjVNode W;
-	if (Graph->G[V].FirstEdge->flag) return;
-	printf("{");
+	
 	for (W = Graph->G[V].FirstEdge; W; W = W->Next) {
+		if (W->flag) continue;
 		printf("%d ", W->Adjv);
-		W->flag = 0;
+		W->flag = 1;
 		DFS(Graph, W->Adjv);
 	}
-	printf("}\n");
+
 }
 
-void BFS(LGraph Graph,Vertex V)
+void BFS(Queue Q,LGraph Graph,Vertex V)
 {
-	Queue Q;
 	PtrToAdjVNode  W;
-
-	Q = CreateQueue(Graph->Ne);
 	Push(Q, Graph->G[V].FirstEdge);
-	while (!IsEmpty(Q)) {
+	while (IsEmpty(Q)) {
 		W = Pop(Q);
-		if (W->flag == 1) break;
-		printf("{ ");
+		//if (Graph->G[W->Adjv].FirstEdge->flag== 1) break;
 		for (W; W->Next; W = W->Next) {
 			printf("%d ", W->Adjv);
 			Push(Q, W->Next);
@@ -174,16 +174,11 @@ void Free(LGraph Graph)
 	}
 }
 
-Queue CreateQueue(Vertex Num)
+Queue CreateQueue(Queue Q,Vertex Num)
 {
-	Queue Q;
-	Q = (Queue)malloc(sizeof(struct QueueNode));
-	if (!Q) {
-		printf("ERROR");
-		return NULL;
-	}
 	Q->Maxsize = Num;
-	return Queue();
+	Q->Front = Q->Rear = NULL;
+	return Q;
 }
 
 void Push(Queue Q, PtrToAdjVNode p)
@@ -195,7 +190,7 @@ void Push(Queue Q, PtrToAdjVNode p)
 		printf("ERROR");
 		return ;
 	}
-	if (!Q->Front && !Q->Rear) {
+	if (Q->Front == NULL && Q->Rear == NULL) {
 		pos->p = p;
 		pos->Next = NULL;
 		Q->Front = Q->Rear = pos;
